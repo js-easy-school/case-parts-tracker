@@ -218,6 +218,18 @@ function loadStateFromLocalStorage() {
             // Ensure compatibility/default arrays
             if (!Array.isArray(state.parts)) state.parts = [];
             if (!Array.isArray(state.logs)) state.logs = [];
+            
+            // Migration: Sanitize parts to ensure they have timePerUnit defined
+            let needsMigrationSave = false;
+            state.parts.forEach(part => {
+                if (part.timePerUnit === undefined) {
+                    part.timePerUnit = 15; // default 15 minutes for old parts
+                    needsMigrationSave = true;
+                }
+            });
+            if (needsMigrationSave) {
+                saveStateToLocalStorage();
+            }
         } catch (e) {
             console.error('Ошибка при чтении LocalStorage. Сброс к дефолтным данным.', e);
             loadDemoData();
@@ -625,8 +637,35 @@ function renderStats() {
     
     state.logs.forEach(log => {
         const logDate = new Date(log.timestamp);
-        if (logDate >= startOfToday && log.quantityChanged > 0 && log.timePerUnit > 0) {
-            totalMinutesToday += log.quantityChanged * log.timePerUnit;
+        if (logDate >= startOfToday) {
+            let logTimePerUnit = log.timePerUnit;
+            let logQty = log.quantityChanged;
+            
+            // Fallback for logs generated before the time-tracking update or missing metadata
+            if (log.partId && (logTimePerUnit === undefined || logQty === undefined)) {
+                const part = state.parts.find(p => p.id === log.partId);
+                if (part) {
+                    logTimePerUnit = part.timePerUnit !== undefined ? part.timePerUnit : 15;
+                    
+                    // Parse quantity from text (e.g. "+3 шт." or "-1 шт.")
+                    const isProduction = log.text.includes('Изготовлено деталей') || 
+                                         log.text.includes('Произведено деталей') || 
+                                         log.text.includes('Списан брак/производство');
+                    if (isProduction) {
+                        const match = log.text.match(/([+-]?\d+)\s*шт\./);
+                        logQty = match ? parseInt(match[1]) : 0;
+                    } else {
+                        logQty = 0;
+                    }
+                } else {
+                    logTimePerUnit = 0;
+                    logQty = 0;
+                }
+            }
+            
+            if (logQty > 0 && logTimePerUnit > 0) {
+                totalMinutesToday += logQty * logTimePerUnit;
+            }
         }
     });
     
