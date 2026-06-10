@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PartFlow — современная система учета и отслеживания производства корпусных деталей с локальным хранением данных.">
+    <title>PartFlow — Учет и производство корпусных деталей</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar: Add / Edit Part -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>PartFlow</span>
+                </div>
+                <p class="sidebar-subtitle">Учет корпусных деталей</p>
+            </div>
+
+            <div class="form-container">
+                <h3 id="form-title">Добавить деталь</h3>
+                <form id="part-form" novalidate>
+                    <input type="hidden" id="part-id">
+                    
+                    <div class="form-group">
+                        <label for="part-name">Название / Артикул</label>
+                        <input type="text" id="part-name" placeholder="Например: Передняя панель ATX-02" required>
+                        <span class="error-msg" id="name-error">Введите название детали</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="part-material">Материал</label>
+                            <select id="part-material">
+                                <option value="Алюминий">Алюминий</option>
+                                <option value="Сталь">Сталь</option>
+                                <option value="Пластик (ABS/PLA)">Пластик (ABS/PLA)</option>
+                                <option value="Акрил">Акрил</option>
+                                <option value="Оргстекло">Оргстекло</option>
+                                <option value="Дерево/МДФ">Дерево/МДФ</option>
+                                <option value="Другое">Другое</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="part-category">Категория</label>
+                            <select id="part-category">
+                                <option value="Панели">Панели</option>
+                                <option value="Кронштейны">Кронштейны</option>
+                                <option value="Крышки">Крышки</option>
+                                <option value="Шасси/Основания">Шасси/Основания</option>
+                                <option value="Крепеж/Мелочь">Крепеж/Мелочь</option>
+                                <option value="Разное">Разное</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="part-target">План (нужно)</label>
+                            <input type="number" id="part-target" min="1" value="10" required>
+                            <span class="error-msg" id="target-error">Минимум 1 шт.</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="part-stock">В наличии (есть)</label>
+                            <input type="number" id="part-stock" min="0" value="0" required>
+                            <span class="error-msg" id="stock-error">Не менее 0</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="part-done">Сделано (готово)</label>
+                        <input type="number" id="part-done" min="0" value="0" required>
+                        <span class="error-msg" id="done-error">Не должно превышать план</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="part-description">Описание / Примечание</label>
+                        <textarea id="part-description" rows="3" placeholder="Чертеж №12, порошковая покраска..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Сохранить</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancel-btn" style="display: none;">Отмена</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-text" id="toggle-theme-btn">
+                    <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <span id="theme-text">Светлая тема</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Topbar / Header -->
+            <header class="topbar">
+                <div class="welcome">
+                    <h1>Производство и склад</h1>
+                    <p>Панель мониторинга и учета деталей</p>
+                </div>
+                <div class="topbar-actions">
+                    <button class="btn btn-secondary" id="view-logs-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span>История активности</span>
+                    </button>
+                    <button class="btn btn-secondary" id="export-import-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        <span>Резервная копия</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Stats Overview Dashboard -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon bg-gradient-blue">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-title">Всего наименований</p>
+                        <h2 class="stat-value" id="stat-total-types">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon bg-gradient-violet">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-title">Запланировано деталей</p>
+                        <h2 class="stat-value" id="stat-total-target">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon bg-gradient-green">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-title">Сделано всего</p>
+                        <h2 class="stat-value" id="stat-total-done">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card progress-circle-card">
+                    <div class="progress-ring-container">
+                        <svg class="progress-ring" width="80" height="80">
+                            <circle class="progress-ring__circle-bg" stroke="var(--bg-card-hover)" stroke-width="8" fill="transparent" r="32" cx="40" cy="40"/>
+                            <circle class="progress-ring__circle" stroke="url(#progress-gradient)" stroke-width="8" fill="transparent" r="32" cx="40" cy="40"/>
+                            <defs>
+                                <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#3b82f6" />
+                                    <stop offset="100%" stop-color="#10b981" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="progress-text" id="stat-progress-percent">0%</div>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-title">Общий прогресс</p>
+                        <p class="stat-desc" id="stat-total-remaining">Осталось сделать: 0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters & Sorting Control Panel -->
+            <section class="control-panel">
+                <div class="search-bar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="search-input" placeholder="Поиск по названию или примечанию...">
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="filter-material">Материал</label>
+                        <select id="filter-material">
+                            <option value="all">Все материалы</option>
+                            <option value="Алюминий">Алюминий</option>
+                            <option value="Сталь">Сталь</option>
+                            <option value="Пластик (ABS/PLA)">Пластик</option>
+                            <option value="Акрил">Акрил</option>
+                            <option value="Оргстекло">Оргстекло</option>
+                            <option value="Дерево/МДФ">Дерево/МДФ</option>
+                            <option value="Другое">Другое</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filter-status">Статус</label>
+                        <select id="filter-status">
+                            <option value="all">Все статусы</option>
+                            <option value="not-started">Не начато (0%)</option>
+                            <option value="in-progress">В процессе</option>
+                            <option value="completed">Готово (100%)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="sort-by">Сортировка</label>
+                        <select id="sort-by">
+                            <option value="date-desc">Сначала новые</option>
+                            <option value="name-asc">А-Я</option>
+                            <option value="progress-asc">Низкий прогресс</option>
+                            <option value="progress-desc">Высокий прогресс</option>
+                            <option value="target-desc">План (по убыв.)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Parts Container Grid -->
+            <section class="parts-grid-wrapper">
+                <div class="parts-empty" id="parts-empty-state">
+                    <div class="empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.67 3.27 12.23"></polyline><polyline points="16.5 19.79 16.5 14.67 20.73 12.23"></polyline><polyline points="12 12.01 12 22.08"></polyline><polyline points="12 12.01 20.73 6.96"></polyline><polyline points="12 12.01 3.27 6.96"></polyline></svg>
+                    </div>
+                    <h3>Детали не найдены</h3>
+                    <p>Добавьте новую корпусную деталь через форму слева или измените параметры фильтров.</p>
+                </div>
+                <div class="parts-grid" id="parts-container">
+                    <!-- Dynamic part cards will go here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Activity Log / History -->
+    <div class="modal" id="logs-modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h2>История активности и лог производства</h2>
+                <button class="close-btn" id="close-logs-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="logs-controls">
+                    <button class="btn btn-secondary btn-sm" id="clear-logs-btn">Очистить лог</button>
+                </div>
+                <div class="logs-timeline" id="logs-timeline-container">
+                    <!-- Dynamic history logs will go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Backup & Restore (Export/Import) -->
+    <div class="modal" id="backup-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Резервное копирование данных</h2>
+                <button class="close-btn" id="close-backup-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-text">Экспортируйте ваши данные в JSON-файл для создания резервной копии или импортируйте ранее сохраненный файл.</p>
+                
+                <div class="backup-actions">
+                    <div class="backup-section">
+                        <h3>Экспорт</h3>
+                        <p>Скачать файл со всеми деталями и логом активности.</p>
+                        <button class="btn btn-primary" id="btn-export-data">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Сохранить в файл</span>
+                        </button>
+                    </div>
+                    
+                    <div class="backup-section border-top">
+                        <h3>Импорт</h3>
+                        <p>Загрузить файл данных. Внимание! Это перезапишет текущую базу в LocalStorage.</p>
+                        <label for="import-file-input" class="btn btn-secondary custom-file-upload">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span>Выбрать файл</span>
+                        </label>
+                        <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                        <span id="import-filename-status" class="file-status">Файл не выбран</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Main JS Application -->
+    <script src="app.js"></script>
+</body>
+</html>
