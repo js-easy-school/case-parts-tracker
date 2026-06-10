@@ -416,7 +416,7 @@ function handleFormSubmit(e) {
     
     if (id) {
         // Edit Existing Part
-        const partIdx = state.parts.findIndex(p => p.id === id);
+        const partIdx = state.parts.findIndex(p => p.id == id);
         if (partIdx !== -1) {
             const oldPart = state.parts[partIdx];
             state.parts[partIdx] = {
@@ -495,7 +495,7 @@ function resetForm() {
 
 // --- Editing & Deletion Logic ---
 function editPart(partId) {
-    const part = state.parts.find(p => p.id === partId);
+    const part = state.parts.find(p => p.id == partId);
     if (!part) return;
     
     DOM.partIdInput.value = part.id;
@@ -517,15 +517,15 @@ function editPart(partId) {
 }
 
 function deletePart(partId) {
-    const part = state.parts.find(p => p.id === partId);
+    const part = state.parts.find(p => p.id == partId);
     if (!part) return;
     
     if (confirm(`Вы уверены, что хотите полностью удалить деталь "${part.name}" из базы данных?`)) {
-        state.parts = state.parts.filter(p => p.id !== partId);
+        state.parts = state.parts.filter(p => p.id != partId);
         logActivity(`Удалена деталь: "${part.name}"`, 'danger', partId, part.name);
         
         // If we were editing this part, reset the form
-        if (DOM.partIdInput.value === partId) {
+        if (DOM.partIdInput.value == partId) {
             resetForm();
         }
         
@@ -537,7 +537,7 @@ function deletePart(partId) {
 
 // --- Quick Inventory Increments (+/-) ---
 function adjustStock(partId, amount) {
-    const part = state.parts.find(p => p.id === partId);
+    const part = state.parts.find(p => p.id == partId);
     if (!part) return;
     
     const oldStock = part.stock;
@@ -557,7 +557,7 @@ function adjustStock(partId, amount) {
 }
 
 function adjustDone(partId, amount) {
-    const part = state.parts.find(p => p.id === partId);
+    const part = state.parts.find(p => p.id == partId);
     if (!part) return;
     
     const oldDone = part.done;
@@ -643,7 +643,7 @@ function renderStats() {
             
             // Fallback for logs generated before the time-tracking update or missing metadata
             if (log.partId && (logTimePerUnit === undefined || logQty === undefined)) {
-                const part = state.parts.find(p => p.id === log.partId);
+                const part = state.parts.find(p => p.id == log.partId);
                 if (part) {
                     logTimePerUnit = part.timePerUnit !== undefined ? part.timePerUnit : 15;
                     
