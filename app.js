@@ -220,11 +220,38 @@ function loadStateFromLocalStorage() {
             if (!Array.isArray(state.parts)) state.parts = [];
             if (!Array.isArray(state.logs)) state.logs = [];
             
-            // Migration: Sanitize parts to ensure they have timePerUnit defined
+            // Migration: Sanitize parts to ensure they have timePerUnit defined and all properties are numbers
             let needsMigrationSave = false;
             state.parts.forEach(part => {
-                if (part.timePerUnit === undefined) {
-                    part.timePerUnit = 15; // default 15 minutes for old parts
+                // Ensure correct numeric types to prevent string concatenation or NaN glitches
+                const oldTarget = part.target;
+                const oldStock = part.stock;
+                const oldDone = part.done;
+                const oldTime = part.timePerUnit;
+                
+                part.target = parseInt(part.target);
+                if (isNaN(part.target)) part.target = 10;
+                
+                part.stock = parseInt(part.stock);
+                if (isNaN(part.stock)) part.stock = 0;
+                
+                part.done = parseInt(part.done);
+                if (isNaN(part.done)) part.done = 0;
+                
+                part.timePerUnit = parseInt(part.timePerUnit);
+                if (isNaN(part.timePerUnit)) part.timePerUnit = 15;
+                
+                if (oldTarget !== part.target || oldStock !== part.stock || oldDone !== part.done || oldTime !== part.timePerUnit) {
+                    needsMigrationSave = true;
+                }
+                
+                // Ensure creation dates exist for stable sorting
+                if (!part.createdAt) {
+                    part.createdAt = part.updatedAt || new Date().toISOString();
+                    needsMigrationSave = true;
+                }
+                if (!part.updatedAt) {
+                    part.updatedAt = part.createdAt;
                     needsMigrationSave = true;
                 }
             });
@@ -546,14 +573,14 @@ function adjustStock(partId, amount) {
     const part = state.parts.find(p => p.id == partId);
     if (!part) return;
     
-    const oldStock = part.stock;
-    const newStock = Math.max(0, oldStock + amount);
+    const oldStock = parseInt(part.stock);
+    const newStock = Math.max(0, (isNaN(oldStock) ? 0 : oldStock) + amount);
     
-    if (oldStock !== newStock) {
+    if (part.stock !== newStock) {
         part.stock = newStock;
         part.updatedAt = new Date().toISOString();
         
-        const delta = newStock - oldStock;
+        const delta = newStock - (isNaN(oldStock) ? 0 : oldStock);
         const msg = `Изменено наличие детали "${part.name}": ${delta > 0 ? '+' : ''}${delta} шт. (Текущий склад: ${newStock} шт.)`;
         logActivity(msg, 'info', partId, part.name);
         saveStateToLocalStorage();
@@ -566,18 +593,18 @@ function adjustDone(partId, amount) {
     const part = state.parts.find(p => p.id == partId);
     if (!part) return;
     
-    const oldDone = part.done;
-    const newDone = Math.max(0, oldDone + amount);
+    const oldDone = parseInt(part.done);
+    const newDone = Math.max(0, (isNaN(oldDone) ? 0 : oldDone) + amount);
     
-    if (oldDone !== newDone) {
+    if (part.done !== newDone) {
         part.done = newDone;
         part.updatedAt = new Date().toISOString();
         
-        const delta = newDone - oldDone;
+        const delta = newDone - (isNaN(oldDone) ? 0 : oldDone);
         const msg = `${delta > 0 ? 'Изготовлено деталей' : 'Списан брак/производство'}: "${part.name}" ${delta > 0 ? '+' : ''}${delta} шт. (Всего произведено: ${newDone}/${part.target})`;
         
         let type = 'info';
-        if (newDone >= part.target && oldDone < part.target) {
+        if (newDone >= part.target && (isNaN(oldDone) ? 0 : oldDone) < part.target) {
             type = 'success';
         }
         
@@ -585,7 +612,7 @@ function adjustDone(partId, amount) {
         saveStateToLocalStorage();
         renderApp();
         
-        if (newDone >= part.target && oldDone < part.target) {
+        if (newDone >= part.target && (isNaN(oldDone) ? 0 : oldDone) < part.target) {
             showToast(`🎉 Производство детали "${part.name}" завершено!`, 'success');
         } else {
             showToast(`Производство: ${newDone} шт.`, 'success');
@@ -629,12 +656,14 @@ function renderStats() {
     let totalDone = 0;
     
     state.parts.forEach(part => {
-        totalTarget += part.target;
-        totalDone += Math.min(part.target, part.done);
+        const target = parseInt(part.target) || 0;
+        const done = parseInt(part.done) || 0;
+        totalTarget += target;
+        totalDone += Math.min(target, done);
     });
     
     // Total raw done
-    let absoluteDone = state.parts.reduce((sum, p) => sum + p.done, 0);
+    let absoluteDone = state.parts.reduce((sum, p) => sum + (parseInt(p.done) || 0), 0);
     
     // Time spent today calculation
     let totalMinutesToday = 0;
@@ -758,7 +787,9 @@ function renderPartsList() {
     // Sort
     filteredParts.sort((a, b) => {
         if (sortVal === 'date-desc') {
-            return new Date(b.updatedAt) - new Date(a.updatedAt);
+            const dateA = a.createdAt ? new Date(a.createdAt) : new Date(a.updatedAt || 0);
+            const dateB = b.createdAt ? new Date(b.createdAt) : new Date(b.updatedAt || 0);
+            return dateB - dateA;
         } else if (sortVal === 'name-asc') {
             return a.name.localeCompare(b.name);
         } else if (sortVal === 'progress-asc') {
@@ -971,6 +1002,21 @@ function handleDataImport(e) {
             // Basic validation
             if (importedData && Array.isArray(importedData.parts)) {
                 state.parts = importedData.parts;
+                
+                // Enforce numbers and creation dates on import
+                state.parts.forEach(part => {
+                    part.target = parseInt(part.target) || 10;
+                    part.stock = parseInt(part.stock) || 0;
+                    part.done = parseInt(part.done) || 0;
+                    part.timePerUnit = parseInt(part.timePerUnit) || 15;
+                    if (!part.createdAt) {
+                        part.createdAt = part.updatedAt || new Date().toISOString();
+                    }
+                    if (!part.updatedAt) {
+                        part.updatedAt = part.createdAt;
+                    }
+                });
+                
                 state.logs = Array.isArray(importedData.logs) ? importedData.logs : [];
                 
                 // Add system log
