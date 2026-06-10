@@ -54,14 +54,16 @@
                         </div>
                         <div class="form-group">
                             <label for="part-category">Категория</label>
-                            <select id="part-category">
-                                <option value="Панели">Панели</option>
-                                <option value="Кронштейны">Кронштейны</option>
-                                <option value="Крышки">Крышки</option>
-                                <option value="Шасси/Основания">Шасси/Основания</option>
-                                <option value="Крепеж/Мелочь">Крепеж/Мелочь</option>
-                                <option value="Разное">Разное</option>
-                            </select>
+                            <input type="text" id="part-category" list="categories-list" placeholder="Например: Панели" required>
+                            <datalist id="categories-list">
+                                <option value="Панели"></option>
+                                <option value="Кронштейны"></option>
+                                <option value="Крышки"></option>
+                                <option value="Шасси/Основания"></option>
+                                <option value="Крепеж/Мелочь"></option>
+                                <option value="Разное"></option>
+                            </datalist>
+                            <span class="error-msg" id="category-error">Укажите категорию</span>
                         </div>
                     </div>
 

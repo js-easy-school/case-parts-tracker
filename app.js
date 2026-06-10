@@ -299,6 +299,7 @@ function setupEventListeners() {
     
     // Validation on the fly
     DOM.partNameInput.addEventListener('input', () => validateField(DOM.partNameInput, 'name-error'));
+    DOM.partCategorySelect.addEventListener('input', () => validateField(DOM.partCategorySelect, 'category-error'));
     DOM.partTargetInput.addEventListener('input', () => validateField(DOM.partTargetInput, 'target-error', val => parseInt(val) > 0));
     DOM.partStockInput.addEventListener('input', () => validateField(DOM.partStockInput, 'stock-error', val => parseInt(val) >= 0));
     DOM.partDoneInput.addEventListener('input', () => validateField(DOM.partDoneInput, 'done-error', val => parseInt(val) >= 0));
@@ -363,11 +364,12 @@ function handleFormSubmit(e) {
     
     // Run all validations
     const isNameValid = validateField(DOM.partNameInput, 'name-error');
+    const isCategoryValid = validateField(DOM.partCategorySelect, 'category-error');
     const isTargetValid = validateField(DOM.partTargetInput, 'target-error', val => parseInt(val) > 0);
     const isStockValid = validateField(DOM.partStockInput, 'stock-error', val => parseInt(val) >= 0);
     const isDoneValid = validateField(DOM.partDoneInput, 'done-error', val => parseInt(val) >= 0);
     
-    if (!isNameValid || !isTargetValid || !isStockValid || !isDoneValid) {
+    if (!isNameValid || !isCategoryValid || !isTargetValid || !isStockValid || !isDoneValid) {
         showToast('Пожалуйста, исправьте ошибки заполнения формы', 'error');
         return;
     }
@@ -375,7 +377,7 @@ function handleFormSubmit(e) {
     const id = DOM.partIdInput.value;
     const name = DOM.partNameInput.value.trim();
     const material = DOM.partMaterialSelect.value;
-    const category = DOM.partCategorySelect.value;
+    const category = DOM.partCategorySelect.value.trim();
     const target = parseInt(DOM.partTargetInput.value);
     const stock = parseInt(DOM.partStockInput.value);
     const done = parseInt(DOM.partDoneInput.value);
@@ -443,6 +445,7 @@ function resetForm() {
     // Clear validation borders/errors
     document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
     DOM.partNameInput.style.borderColor = 'var(--border-color)';
+    DOM.partCategorySelect.style.borderColor = 'var(--border-color)';
     DOM.partTargetInput.style.borderColor = 'var(--border-color)';
     DOM.partStockInput.style.borderColor = 'var(--border-color)';
     DOM.partDoneInput.style.borderColor = 'var(--border-color)';
@@ -549,7 +552,31 @@ function adjustDone(partId, amount) {
 // --- Render Operations ---
 function renderApp() {
     renderStats();
+    updateCategoriesDatalist();
     renderPartsList();
+}
+
+function updateCategoriesDatalist() {
+    const datalist = document.getElementById('categories-list');
+    if (!datalist) return;
+    
+    // Gather unique categories from current parts
+    const categories = new Set();
+    state.parts.forEach(part => {
+        if (part.category) {
+            categories.add(part.category.trim());
+        }
+    });
+    
+    // Add default categories if they aren't already in the set, to give options initially
+    const defaultCats = ["Панели", "Кронштейны", "Крышки", "Шасси/Основания", "Крепеж/Мелочь", "Разное"];
+    defaultCats.forEach(cat => categories.add(cat));
+    
+    // Rebuild datalist HTML
+    datalist.innerHTML = Array.from(categories)
+        .sort()
+        .map(cat => `<option value="${escapeHTML(cat)}"></option>`)
+        .join('');
 }
 
 function renderStats() {
