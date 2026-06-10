@@ -647,14 +647,24 @@ function renderStats() {
                 if (part) {
                     logTimePerUnit = part.timePerUnit !== undefined ? part.timePerUnit : 15;
                     
-                    // Parse quantity from text (e.g. "+3 шт." or "-1 шт.")
-                    const isProduction = log.text.includes('Изготовлено деталей') || 
-                                         log.text.includes('Произведено деталей') || 
-                                         log.text.includes('Списан брак/производство');
-                    if (isProduction) {
+                    // Parse quantity from text (only for production actions, ignoring stock/warehouse logs)
+                    let isProduction = false;
+                    if (log.text.includes('Изготовлено деталей') || 
+                        log.text.includes('Произведено деталей') || 
+                        log.text.includes('Списан брак/производство')) {
+                        isProduction = true;
                         const match = log.text.match(/([+-]?\d+)\s*шт\./);
                         logQty = match ? parseInt(match[1]) : 0;
-                    } else {
+                    } else if (log.text.includes('произведено (')) {
+                        // Parse from edit log (e.g., "произведено (3 -> 8)")
+                        const matchEdit = log.text.match(/произведено\s*\(\s*(\d+)\s*->\s*(\d+)\s*\)/);
+                        if (matchEdit) {
+                            logQty = parseInt(matchEdit[2]) - parseInt(matchEdit[1]);
+                            isProduction = true;
+                        }
+                    }
+                    
+                    if (!isProduction) {
                         logQty = 0;
                     }
                 } else {
