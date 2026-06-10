@@ -655,43 +655,49 @@ function renderStats() {
             let logTimePerUnit = log.timePerUnit;
             let logQty = log.quantityChanged;
             
-            // Fallback for logs generated before the time-tracking update or missing metadata
-            if (log.partId && (logTimePerUnit === undefined || logQty === undefined)) {
-                const part = state.parts.find(p => p.id == log.partId);
-                if (part) {
-                    logTimePerUnit = part.timePerUnit !== undefined ? part.timePerUnit : 15;
-                    
-                    // Parse quantity from text (only for production actions, ignoring stock/warehouse logs)
-                    let isProduction = false;
-                    if (log.text.includes('Изготовлено деталей') || 
-                        log.text.includes('Произведено деталей') || 
-                        log.text.includes('Списан брак/производство')) {
+            const part = log.partId ? state.parts.find(p => p.id == log.partId) : null;
+            
+            // If the part exists, always prefer its current timePerUnit to allow retroactive updates
+            if (part) {
+                logTimePerUnit = part.timePerUnit !== undefined ? part.timePerUnit : 15;
+            }
+            
+            // Fallback for quantity if it is missing (older logs)
+            if (logQty === undefined && log.partId) {
+                // Parse quantity from text (only for production actions, ignoring stock/warehouse logs)
+                let isProduction = false;
+                if (log.text.includes('Изготовлено деталей') || 
+                    log.text.includes('Произведено деталей') || 
+                    log.text.includes('Списан брак/производство')) {
+                    isProduction = true;
+                    const match = log.text.match(/([+-]?\d+)\s*шт\./);
+                    logQty = match ? parseInt(match[1]) : 0;
+                } else if (log.text.includes('произведено (')) {
+                    // Parse from edit log (e.g., "произведено (3 -> 8)")
+                    const matchEdit = log.text.match(/произведено\s*\(\s*(\d+)\s*->\s*(\d+)\s*\)/);
+                    if (matchEdit) {
+                        logQty = parseInt(matchEdit[2]) - parseInt(matchEdit[1]);
                         isProduction = true;
-                        const match = log.text.match(/([+-]?\d+)\s*шт\./);
-                        logQty = match ? parseInt(match[1]) : 0;
-                    } else if (log.text.includes('произведено (')) {
-                        // Parse from edit log (e.g., "произведено (3 -> 8)")
-                        const matchEdit = log.text.match(/произведено\s*\(\s*(\d+)\s*->\s*(\d+)\s*\)/);
-                        if (matchEdit) {
-                            logQty = parseInt(matchEdit[2]) - parseInt(matchEdit[1]);
-                            isProduction = true;
-                        }
                     }
-                    
-                    if (!isProduction) {
-                        logQty = 0;
-                    }
-                } else {
-                    logTimePerUnit = 0;
+                }
+                
+                if (!isProduction) {
                     logQty = 0;
                 }
             }
             
-            if (logQty > 0 && logTimePerUnit > 0) {
+            // If logQty is still undefined, default to 0
+            if (logQty === undefined) logQty = 0;
+            // If logTimePerUnit is still undefined, default to 0
+            if (logTimePerUnit === undefined) logTimePerUnit = 0;
+            
+            if (logQty !== 0 && logTimePerUnit > 0) {
                 totalMinutesToday += logQty * logTimePerUnit;
             }
         }
     });
+    
+    totalMinutesToday = Math.max(0, totalMinutesToday);
     
     const hours = Math.floor(totalMinutesToday / 60);
     const mins = totalMinutesToday % 60;
