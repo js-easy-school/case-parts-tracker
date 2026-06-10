@@ -133,6 +133,7 @@ const DOM = {
     statTotalTarget: document.getElementById('stat-total-target'),
     statTotalDone: document.getElementById('stat-total-done'),
     statTimeToday: document.getElementById('stat-time-today'),
+    resetTimeBtn: document.getElementById('reset-time-btn'),
     statProgressPercent: document.getElementById('stat-progress-percent'),
     statTotalRemaining: document.getElementById('stat-total-remaining'),
     progressRingCircle: document.querySelector('.progress-ring__circle'),
@@ -335,6 +336,11 @@ function setupEventListeners() {
 
     // Theme Switch
     DOM.toggleThemeBtn.addEventListener('click', toggleTheme);
+    
+    // Reset Time
+    if (DOM.resetTimeBtn) {
+        DOM.resetTimeBtn.addEventListener('click', handleResetTime);
+    }
     
     // Modals
     DOM.viewLogsBtn.addEventListener('click', () => openModal(DOM.logsModal, renderLogsTimeline));
@@ -635,9 +641,17 @@ function renderStats() {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     
+    // Check if user has reset today's time counter
+    const resetTimeStr = localStorage.getItem('partflow-time-reset');
+    let resetTime = resetTimeStr ? new Date(resetTimeStr) : null;
+    if (resetTime && resetTime < startOfToday) {
+        localStorage.removeItem('partflow-time-reset');
+        resetTime = null;
+    }
+    
     state.logs.forEach(log => {
         const logDate = new Date(log.timestamp);
-        if (logDate >= startOfToday) {
+        if (logDate >= startOfToday && (!resetTime || logDate > resetTime)) {
             let logTimePerUnit = log.timePerUnit;
             let logQty = log.quantityChanged;
             
@@ -906,6 +920,15 @@ function handleClearLogs() {
         saveStateToLocalStorage();
         renderLogsTimeline();
         showToast('История очищена', 'warning');
+    }
+}
+
+function handleResetTime() {
+    if (confirm('Вы уверены, что хотите сбросить счетчик затраченного за сегодня времени?')) {
+        localStorage.setItem('partflow-time-reset', new Date().toISOString());
+        logActivity('Сброшен счетчик затраченного времени за сегодня', 'warning');
+        renderApp();
+        showToast('Счетчик времени сброшен', 'warning');
     }
 }
 
