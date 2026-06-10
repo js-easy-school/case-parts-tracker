@@ -12,6 +12,7 @@ const DEFAULT_PARTS = [
         target: 20,
         stock: 5,
         done: 8,
+        timePerUnit: 25,
         description: "Чертеж №A-102. После фрезеровки отправить на пескоструйную обработку и черное анодирование.",
         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
@@ -24,6 +25,7 @@ const DEFAULT_PARTS = [
         target: 10,
         stock: 10,
         done: 10,
+        timePerUnit: 15,
         description: "Лазерная резка. Отверстия под крепеж M4 и вентиляционную решетку 120мм.",
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
@@ -36,6 +38,7 @@ const DEFAULT_PARTS = [
         target: 30,
         stock: 0,
         done: 0,
+        timePerUnit: 45,
         description: "Сталь 1.5мм, гибка на станке по развертке SFX-B. Порошковая покраска в серый цвет.",
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
@@ -48,6 +51,7 @@ const DEFAULT_PARTS = [
         target: 15,
         stock: 3,
         done: 6,
+        timePerUnit: 20,
         description: "Перфорация в виде гексагонов. Важно следить за качеством реза на углах.",
         createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
@@ -61,7 +65,9 @@ const DEFAULT_LOGS = [
         partName: "Боковая стенка левая (акрил 4мм)",
         type: "success",
         text: "Завершено производство по плану: изготовлено 10 шт.",
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        timePerUnit: 15,
+        quantityChanged: 10
     },
     {
         id: "log-2",
@@ -69,7 +75,9 @@ const DEFAULT_LOGS = [
         partName: "Передняя панель ATX-02 (черная)",
         type: "info",
         text: "В наличии на складе добавлено 5 шт. готовой продукции.",
-        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        timePerUnit: 0,
+        quantityChanged: 0
     },
     {
         id: "log-3",
@@ -77,7 +85,9 @@ const DEFAULT_LOGS = [
         partName: "Крышка верхняя с перфорацией",
         type: "success",
         text: "Произведено деталей: +3 шт. (Всего готово: 6 из 15)",
-        timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
+        timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+        timePerUnit: 20,
+        quantityChanged: 3
     },
     {
         id: "log-4",
@@ -85,7 +95,9 @@ const DEFAULT_LOGS = [
         partName: null,
         type: "info",
         text: "Приложение успешно инициализировано с демонстрационными данными.",
-        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        timePerUnit: 0,
+        quantityChanged: 0
     }
 ];
 
@@ -106,6 +118,7 @@ const DOM = {
     partTargetInput: document.getElementById('part-target'),
     partStockInput: document.getElementById('part-stock'),
     partDoneInput: document.getElementById('part-done'),
+    partTimeInput: document.getElementById('part-time'),
     partDescTextarea: document.getElementById('part-description'),
     formTitle: document.getElementById('form-title'),
     submitBtn: document.getElementById('submit-btn'),
@@ -119,6 +132,7 @@ const DOM = {
     statTotalTypes: document.getElementById('stat-total-types'),
     statTotalTarget: document.getElementById('stat-total-target'),
     statTotalDone: document.getElementById('stat-total-done'),
+    statTimeToday: document.getElementById('stat-time-today'),
     statProgressPercent: document.getElementById('stat-progress-percent'),
     statTotalRemaining: document.getElementById('stat-total-remaining'),
     progressRingCircle: document.querySelector('.progress-ring__circle'),
@@ -224,14 +238,16 @@ function loadDemoData() {
 }
 
 // --- Activity Logging System ---
-function logActivity(text, type = 'info', partId = null, partName = null) {
+function logActivity(text, type = 'info', partId = null, partName = null, timePerUnit = 0, quantityChanged = 0) {
     const newLog = {
         id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         partId,
         partName,
         type,
         text,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        timePerUnit,
+        quantityChanged
     };
     state.logs.unshift(newLog); // Prepend to show newest first
     
@@ -303,6 +319,7 @@ function setupEventListeners() {
     DOM.partTargetInput.addEventListener('input', () => validateField(DOM.partTargetInput, 'target-error', val => parseInt(val) > 0));
     DOM.partStockInput.addEventListener('input', () => validateField(DOM.partStockInput, 'stock-error', val => parseInt(val) >= 0));
     DOM.partDoneInput.addEventListener('input', () => validateField(DOM.partDoneInput, 'done-error', val => parseInt(val) >= 0));
+    DOM.partTimeInput.addEventListener('input', () => validateField(DOM.partTimeInput, 'time-error', val => parseInt(val) >= 0));
 
     // Theme Switch
     DOM.toggleThemeBtn.addEventListener('click', toggleTheme);
@@ -368,8 +385,9 @@ function handleFormSubmit(e) {
     const isTargetValid = validateField(DOM.partTargetInput, 'target-error', val => parseInt(val) > 0);
     const isStockValid = validateField(DOM.partStockInput, 'stock-error', val => parseInt(val) >= 0);
     const isDoneValid = validateField(DOM.partDoneInput, 'done-error', val => parseInt(val) >= 0);
+    const isTimeValid = validateField(DOM.partTimeInput, 'time-error', val => parseInt(val) >= 0);
     
-    if (!isNameValid || !isCategoryValid || !isTargetValid || !isStockValid || !isDoneValid) {
+    if (!isNameValid || !isCategoryValid || !isTargetValid || !isStockValid || !isDoneValid || !isTimeValid) {
         showToast('Пожалуйста, исправьте ошибки заполнения формы', 'error');
         return;
     }
@@ -381,6 +399,7 @@ function handleFormSubmit(e) {
     const target = parseInt(DOM.partTargetInput.value);
     const stock = parseInt(DOM.partStockInput.value);
     const done = parseInt(DOM.partDoneInput.value);
+    const timePerUnit = parseInt(DOM.partTimeInput.value) || 0;
     const description = DOM.partDescTextarea.value.trim();
     
     if (id) {
@@ -396,6 +415,7 @@ function handleFormSubmit(e) {
                 target,
                 stock,
                 done,
+                timePerUnit,
                 description,
                 updatedAt: new Date().toISOString()
             };
@@ -408,9 +428,11 @@ function handleFormSubmit(e) {
             if (oldPart.target !== target) changes.push(`план (${oldPart.target} -> ${target})`);
             if (oldPart.stock !== stock) changes.push(`в наличии (${oldPart.stock} -> ${stock})`);
             if (oldPart.done !== done) changes.push(`произведено (${oldPart.done} -> ${done})`);
+            if (oldPart.timePerUnit !== timePerUnit) changes.push(`время на ед. (${oldPart.timePerUnit} -> ${timePerUnit} мин)`);
             
             logMsg += changes.length > 0 ? changes.join(', ') : 'без изменений параметров';
-            logActivity(logMsg, 'info', id, name);
+            const deltaDone = done - oldPart.done;
+            logActivity(logMsg, 'info', id, name, timePerUnit, deltaDone);
             showToast('Деталь успешно обновлена', 'success');
         }
     } else {
@@ -423,13 +445,14 @@ function handleFormSubmit(e) {
             target,
             stock,
             done,
+            timePerUnit,
             description,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
         
         state.parts.push(newPart);
-        logActivity(`Добавлена новая корпусная деталь: "${name}" (План: ${target} шт.)`, 'success', newPart.id, name);
+        logActivity(`Добавлена новая корпусная деталь: "${name}" (План: ${target} шт., время: ${timePerUnit} мин/ед)`, 'success', newPart.id, name, timePerUnit, done);
         showToast('Деталь успешно добавлена в каталог', 'success');
     }
     
@@ -449,6 +472,8 @@ function resetForm() {
     DOM.partTargetInput.style.borderColor = 'var(--border-color)';
     DOM.partStockInput.style.borderColor = 'var(--border-color)';
     DOM.partDoneInput.style.borderColor = 'var(--border-color)';
+    DOM.partTimeInput.value = '15';
+    DOM.partTimeInput.style.borderColor = 'var(--border-color)';
     
     // Restore default layout
     DOM.formTitle.textContent = 'Добавить деталь';
@@ -468,6 +493,7 @@ function editPart(partId) {
     DOM.partTargetInput.value = part.target;
     DOM.partStockInput.value = part.stock;
     DOM.partDoneInput.value = part.done;
+    DOM.partTimeInput.value = part.timePerUnit || 0;
     DOM.partDescTextarea.value = part.description;
     
     DOM.formTitle.textContent = 'Редактировать деталь';
@@ -537,7 +563,7 @@ function adjustDone(partId, amount) {
             type = 'success';
         }
         
-        logActivity(msg, type, partId, part.name);
+        logActivity(msg, type, partId, part.name, part.timePerUnit || 0, delta);
         saveStateToLocalStorage();
         renderApp();
         
@@ -586,17 +612,31 @@ function renderStats() {
     
     state.parts.forEach(part => {
         totalTarget += part.target;
-        // Cap done in overall stats calculation if we just want target coverage,
-        // or calculate absolute production. Let's calculate actual progress coverage.
         totalDone += Math.min(part.target, part.done);
     });
     
-    // Total raw done (which can theoretically exceed target)
+    // Total raw done
     let absoluteDone = state.parts.reduce((sum, p) => sum + p.done, 0);
+    
+    // Time spent today calculation
+    let totalMinutesToday = 0;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    
+    state.logs.forEach(log => {
+        const logDate = new Date(log.timestamp);
+        if (logDate >= startOfToday && log.quantityChanged > 0 && log.timePerUnit > 0) {
+            totalMinutesToday += log.quantityChanged * log.timePerUnit;
+        }
+    });
+    
+    const hours = Math.floor(totalMinutesToday / 60);
+    const mins = totalMinutesToday % 60;
     
     DOM.statTotalTypes.textContent = totalTypes;
     DOM.statTotalTarget.textContent = totalTarget;
     DOM.statTotalDone.textContent = absoluteDone;
+    DOM.statTimeToday.textContent = hours > 0 ? `${hours} ч ${mins} мин` : `${mins} мин`;
     
     const progressPercent = totalTarget > 0 ? Math.round((totalDone / totalTarget) * 100) : 0;
     DOM.statProgressPercent.textContent = `${progressPercent}%`;
@@ -605,7 +645,7 @@ function renderStats() {
     DOM.statTotalRemaining.textContent = `Осталось сделать: ${remaining} шт.`;
     
     // Update SVG Circle Ring
-    const circumference = 201; // 2 * PI * r = 2 * 3.14159 * 32
+    const circumference = 201;
     const offset = circumference - (progressPercent / 100) * circumference;
     DOM.progressRingCircle.style.strokeDashoffset = offset;
 }
@@ -715,6 +755,10 @@ function renderPartsList() {
                 <div class="metric-box">
                     <span class="metric-label">Сделано</span>
                     <span class="metric-value">${part.done}</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-label">Время/ед</span>
+                    <span class="metric-value">${part.timePerUnit || 0}м</span>
                 </div>
             </div>
             

@@ -80,10 +80,17 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="part-done">Сделано (готово)</label>
-                        <input type="number" id="part-done" min="0" value="0" required>
-                        <span class="error-msg" id="done-error">Не должно превышать план</span>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="part-done">Сделано (готово)</label>
+                            <input type="number" id="part-done" min="0" value="0" required>
+                            <span class="error-msg" id="done-error">Не менее 0</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="part-time">Время на 1 шт. (мин)</label>
+                            <input type="number" id="part-time" min="0" value="15" required>
+                            <span class="error-msg" id="time-error">Не менее 0</span>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -159,6 +166,16 @@
                     <div class="stat-details">
                         <p class="stat-title">Сделано всего</p>
                         <h2 class="stat-value" id="stat-total-done">0</h2>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--grad-violet); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                    <div class="stat-details">
+                        <p class="stat-title">Затрачено сегодня</p>
+                        <h2 class="stat-value" id="stat-time-today">0 ч 0 мин</h2>
                     </div>
                 </div>
 
